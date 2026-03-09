@@ -433,7 +433,7 @@
             <option value="">— выбрать —</option>
             <option value="female">Женщина</option>
             <option value="male">Мужчина</option>
-            <option value="other">Другое / не указывать</option>
+
           </select>
         </div>
         <div class="form-group">
@@ -545,7 +545,7 @@
       <div class="form-section-title">03.5 · Триповые состояния</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Какой гриб вызвал триповые состояния?</label>
+          <label>Какой гриб вызывал когда-нибудь у вас триповые состояния?</label>
           <select id="trip_mushroom">
             <option value="never">Никогда не испытывал триповых состояний</option>
             <option value="red">🔴 Красный мухомор</option>
@@ -827,13 +827,18 @@ async function loadStats() {
         <div class="stat-label">ВСЕГО ОТЗЫВОВ</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">${avgRating.toFixed(1)}</div>
+        <div class="stat-number">${avgRating.toFixed(1)}<span style="font-size:1.2rem;color:var(--gold)">/10</span></div>
         <div class="stat-label">СРЕДНЯЯ ОЦЕНКА</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">${data.byMushroom.length}</div>
-        <div class="stat-label">ВИДОВ ГРИБОВ</div>
+        <div class="stat-number">${data.byExperience.find(e=>e.experience_type==='positive') ? Math.round(data.byExperience.find(e=>e.experience_type==='positive').count/data.total*100) : 0}<span style="font-size:1.2rem;color:var(--gold)">%</span></div>
+        <div class="stat-label">ПОЗИТИВНЫХ ОПЫТОВ</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-number">${data.byEffectsPresence && data.byEffectsPresence.find(e=>e.effects_presence==='yes') ? Math.round(data.byEffectsPresence.find(e=>e.effects_presence==='yes').count/data.total*100) : 0}<span style="font-size:1.2rem;color:var(--gold)">%</span></div>
+        <div class="stat-label">ОЩУЩАЛИ ЭФФЕКТЫ</div>
+      </div>
+
       <div class="stat-card">
         <div class="stat-number">${(data.byExperience.find(e => e.experience_type === 'positive')?.count || 0)}</div>
         <div class="stat-label">ПОЗИТИВНЫХ ОПЫТОВ</div>
@@ -847,17 +852,45 @@ async function loadStats() {
     const palette = Object.values(colors);
 
     const mushroomLabels = { red: 'Красный', panther: 'Пантерный', royal: 'Королевский', other: 'Другой' };
-    const genderLabels = { female: 'Женщина', male: 'Мужчина', other: 'Другое' };
+    const genderLabels = { female: 'Женщина', male: 'Мужчина' };
     const expLabels = { positive: 'Позитивный', negative: 'Негативный', mixed: 'Смешанный', neutral: 'Нейтральный' };
 
     const chartsHTML = `
+      <div style="grid-column:1/-1;font-family:Unbounded,sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:#c9a84c;padding:0.5rem 0;border-bottom:1px solid #2a2a26;margin-bottom:0.5rem">ОБЩАЯ ИНФОРМАЦИЯ</div>
       <div class="chart-card"><div class="chart-title">Тип опыта</div><canvas id="c-exp"></canvas></div>
       <div class="chart-card"><div class="chart-title">По полу</div><canvas id="c-gender"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Возрастные группы</div><canvas id="c-age"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Опыт приёма</div><canvas id="c-prior"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Ощущались ли эффекты</div><canvas id="c-effects-presence"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Длительность эффектов</div><canvas id="c-duration"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Стаж приёма (месяцы/годы)</div><canvas id="c-exp-duration"></canvas></div>
+
+      <div style="grid-column:1/-1;font-family:Unbounded,sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:#c9a84c;padding:0.5rem 0;border-bottom:1px solid #2a2a26;margin-bottom:0.5rem">ГРИБ И ДОЗИРОВКА</div>
       <div class="chart-card"><div class="chart-title">Вид мухомора</div><canvas id="c-mushroom"></canvas></div>
-      <div class="chart-card"><div class="chart-title">Средняя оценка по виду</div><canvas id="c-rating"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Средняя оценка по виду гриба</div><canvas id="c-rating"></canvas></div>
       <div class="chart-card"><div class="chart-title">Диапазоны дозировок</div><canvas id="c-dosage"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Вид применения</div><canvas id="c-preparation"></canvas></div>
+
+      <div style="grid-column:1/-1;font-family:Unbounded,sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:#c9a84c;padding:0.5rem 0;border-bottom:1px solid #2a2a26;margin-bottom:0.5rem">ЭФФЕКТЫ</div>
       <div class="chart-card"><div class="chart-title">Распределение оценок</div><canvas id="c-ratings-dist"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Обстановка приёма</div><canvas id="c-setting"></canvas></div>
+      <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Физические эффекты (частота)</div><canvas id="c-physical" style="max-height:300px"></canvas></div>
+      <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Психические эффекты (частота)</div><canvas id="c-mental" style="max-height:300px"></canvas></div>
+
+      <div style="grid-column:1/-1;font-family:Unbounded,sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:#c9a84c;padding:0.5rem 0;border-bottom:1px solid #2a2a26;margin-bottom:0.5rem">ТРИПОВЫЕ СОСТОЯНИЯ</div>
+      <div class="chart-card"><div class="chart-title">Гриб вызвавший трип</div><canvas id="c-trip-mushroom"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Дозировка триповых состояний</div><canvas id="c-trip-dosage"></canvas></div>
+
+      <div style="grid-column:1/-1;font-family:Unbounded,sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:#c9a84c;padding:0.5rem 0;border-bottom:1px solid #2a2a26;margin-bottom:0.5rem">ПРИЧИНЫ И БЕЗОПАСНОСТЬ</div>
       <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Причины приёма</div><canvas id="c-reason" style="max-height:300px"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Повторили бы снова?</div><canvas id="c-repeat"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Проблемы с безопасностью</div><canvas id="c-safety"></canvas></div>
+
+      <div style="grid-column:1/-1;font-family:Unbounded,sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:#c9a84c;padding:0.5rem 0;border-bottom:1px solid #2a2a26;margin-bottom:0.5rem">КРОСС-АНАЛИЗ</div>
+      <div class="chart-card"><div class="chart-title">Средняя дозировка по виду применения</div><canvas id="c-prep-dosage"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Средняя оценка по возрасту</div><canvas id="c-age-rating"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Пол vs тип опыта</div><canvas id="c-gender-exp"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Безопасность vs тип опыта</div><canvas id="c-safety-exp"></canvas></div>
     `;
     document.getElementById('chartsGrid').innerHTML = chartsHTML;
 
@@ -872,45 +905,57 @@ async function loadStats() {
     };
 
     // Exp type pie
+    const expTotal = data.byExperience.reduce((s,e) => s+e.count, 0) || 1;
     new Chart(document.getElementById('c-exp'), {
       type: 'doughnut',
       data: {
-        labels: data.byExperience.map(e => expLabels[e.experience_type] || e.experience_type),
+        labels: data.byExperience.map(e => (expLabels[e.experience_type] || e.experience_type) + ' — ' + Math.round(e.count/expTotal*100) + '%'),
         datasets: [{ data: data.byExperience.map(e => e.count), backgroundColor: palette, borderWidth: 0 }]
       },
-      options: { ...chartDefaults, cutout: '65%' }
+      options: { ...chartDefaults, cutout: '65%',
+        plugins: { ...chartDefaults.plugins,
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + Math.round(ctx.raw/expTotal*100) + '%)' } }
+        }
+      }
     });
 
     // Gender bar
     new Chart(document.getElementById('c-gender'), {
       type: 'bar',
       data: {
-        labels: data.byGender.map(g => genderLabels[g.gender] || g.gender),
+        labels: data.byGender.map(g => (genderLabels[g.gender] || g.gender) + ' (' + g.count + ')'),
         datasets: [{
           label: 'Отзывов',
           data: data.byGender.map(g => g.count),
-          backgroundColor: ['#c8392b', '#3a6a9c', '#7a4a8c'],
+          backgroundColor: ['#c8392b', '#3a6a9c'],
           borderRadius: 4, borderWidth: 0
         }]
       },
-      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } }
+      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale },
+        plugins: { ...chartDefaults.plugins, tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + pct(ctx.raw) + '%)' } } }
+      }
     });
 
     // Mushroom type
+    const mushTotal = data.byMushroom.reduce((s,m) => s+m.count, 0) || 1;
     new Chart(document.getElementById('c-mushroom'), {
       type: 'doughnut',
       data: {
-        labels: data.byMushroom.map(m => mushroomLabels[m.mushroom_type] || m.mushroom_type),
+        labels: data.byMushroom.map(m => (mushroomLabels[m.mushroom_type] || m.mushroom_type) + ' — ' + Math.round(m.count/mushTotal*100) + '%'),
         datasets: [{ data: data.byMushroom.map(m => m.count), backgroundColor: palette, borderWidth: 0 }]
       },
-      options: { ...chartDefaults, cutout: '65%' }
+      options: { ...chartDefaults, cutout: '65%',
+        plugins: { ...chartDefaults.plugins,
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + Math.round(ctx.raw/mushTotal*100) + '%)' } }
+        }
+      }
     });
 
     // Avg rating by mushroom
     new Chart(document.getElementById('c-rating'), {
       type: 'bar',
       data: {
-        labels: data.byMushroom.map(m => mushroomLabels[m.mushroom_type] || m.mushroom_type),
+        labels: data.byMushroom.map(m => (mushroomLabels[m.mushroom_type] || m.mushroom_type) + ' (' + m.count + ')'),
         datasets: [{
           label: 'Средняя оценка',
           data: data.byMushroom.map(m => m.avg_rating?.toFixed(1) || 0),
@@ -924,7 +969,7 @@ async function loadStats() {
     new Chart(document.getElementById('c-dosage'), {
       type: 'bar',
       data: {
-        labels: data.byDosage.map(d => d.dosage_range),
+        labels: data.byDosage.map(d => d.dosage_range + ' (' + d.count + ')'),
         datasets: [{
           label: 'Отзывов',
           data: data.byDosage.map(d => d.count),
@@ -932,14 +977,14 @@ async function loadStats() {
         }]
       },
       options: { ...chartDefaults, scales: { x: darkScale, y: darkScale },
-        plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+        plugins: { ...chartDefaults.plugins, legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + pct(ctx.raw) + '%)' } } } }
     });
 
     // Rating distribution
     new Chart(document.getElementById('c-ratings-dist'), {
       type: 'bar',
       data: {
-        labels: data.ratingDist.map(r => r.overall_rating),
+        labels: data.ratingDist.map(r => r.overall_rating + ' (' + r.count + ')'),
         datasets: [{
           label: 'Отзывов',
           data: data.ratingDist.map(r => r.count),
@@ -949,12 +994,97 @@ async function loadStats() {
           borderRadius: 4, borderWidth: 0
         }]
       },
-      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } }
+      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale },
+        plugins: { ...chartDefaults.plugins, tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + pct(ctx.raw) + '%)' } } }
+      }
     });
 
     const reasonLabels = {drug_addiction:'Наркотическая зависимость',nicotine_addiction:'Сигаретная зависимость',alcohol_addiction:'Алкогольная зависимость',anxiety:'Тревожное расстройство',depression:'Депрессивное расстройство',insomnia:'Бессонница',icd_list:'Из списка МКБ',self_understanding:'Понять себя',curiosity:'Просто попробовать',trauma:'Психологическая травма',for_effects:'Ради эффектов',other:'Другое'};
-    if (data.byReason && data.byReason.length) {
-      new Chart(document.getElementById('c-reason'), { type: 'bar', data: { labels: data.byReason.map(r => reasonLabels[r.reason] || r.reason), datasets: [{ label: 'Отзывов', data: data.byReason.map(r => r.count), backgroundColor: '#b8922a', borderRadius: 4, borderWidth: 0 }] }, options: { ...chartOpts, indexAxis: 'y', scales: { x: darkScale, y: darkScale }, plugins: { legend: { display: false } } } });
+    const physLabels = {nausea:'Тошнота',sedation:'Седация',sweating:'Потоотделение',dizziness:'Головокружение',vomiting:'Рвота',muscle_relaxation:'Расслабление мышц',increased_salivation:'Слюноотделение',body_warmth:'Тепло в теле',tremor:'Тремор',loss_coordination:'Потеря координации',bright_vision:'Яркость зрения',foggy_vision:'Туманность зрения',body_activity:'Активность в теле',none_physical:'Нет эффектов'};
+    const mentLabels = {euphoria:'Эйфория',hallucinations:'Галлюцинации',anxiety:'Тревога',confusion:'Спутанность',dream_like:'Сноподобное',time_distortion:'Искажение времени',memory_gaps:'Провалы памяти',introspection:'Интроспекция',altered_perception:'Изм. восприятия',psychotherapy:'Психотерапевтический',euphoric_state:'Эйфорическое состояние',negative_state:'Негативное состояние',sleepy_state:'Сонное состояние',cns_relaxation:'Расслабление ЦНС',cns_stimulation:'Стимуляция ЦНС',none_mental:'Нет эффектов'};
+    const tripMushroomLabels = {never:'Никогда',red:'Красный',panther:'Пантерный',royal:'Королевский'};
+    const tripDosageLabels = {never:'Никогда',under1:'До 1г',t1to3:'1-3г',t3to6:'3-6г',t6to10:'6-10г',over10:'>10г'};
+    const settingLabels = {nature:'Природа',home:'Дома',urban:'Город',ceremony:'Церемония',other:'Другое'};
+    const prepLabels = {raw:'Сырой',dried_caps:'Шляпки сушёные',powder:'Порошок',capsule:'Капсулы',extract:'Экстракт',other:'Другое'};
+    const priorLabels = {none:'Первый раз',few:'Несколько раз',experienced:'Опытный'};
+    const repeatLabels = {yes:'Да',maybe:'Возможно',no:'Нет'};
+    const safetyLabels = {none:'Нет',mild:'Незначительные',serious:'Серьёзные',hospitalization:'Госпитализация'};
+    const presenceLabels = {yes:'Ощущались',no:'Не ощущались'};
+
+    const total = data.total || 1;
+    const pct = (n) => Math.round(n/total*100);
+
+    const mkBar = (id, arr, keyField, labelMap, color) => {
+      if (!arr || !arr.length) return;
+      new Chart(document.getElementById(id), { type: 'bar', data: {
+        labels: arr.map(x => (labelMap[x[keyField]] || x[keyField]) + ' (' + x.count + ')'),
+        datasets: [{ label: 'Отзывов', data: arr.map(x => x.count), backgroundColor: color, borderRadius: 4, borderWidth: 0 }]
+      }, options: { ...chartDefaults, scales: { x: darkScale, y: darkScale }, plugins: { ...chartDefaults.plugins, legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + pct(ctx.raw) + '%)' } }
+      }}});
+    };
+    const mkBarH = (id, arr, keyField, labelMap, color) => {
+      if (!arr || !arr.length) return;
+      new Chart(document.getElementById(id), { type: 'bar', data: {
+        labels: arr.map(x => (labelMap[x[keyField]] || x[keyField]) + ' (' + x.count + ')'),
+        datasets: [{ label: 'Отзывов', data: arr.map(x => x.count), backgroundColor: color, borderRadius: 4, borderWidth: 0 }]
+      }, options: { ...chartDefaults, indexAxis: 'y', scales: { x: darkScale, y: darkScale }, plugins: { ...chartDefaults.plugins, legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + pct(ctx.raw) + '%)' } }
+      }}});
+    };
+    const mkDoughnut = (id, arr, keyField, labelMap) => {
+      if (!arr || !arr.length) return;
+      const t = arr.reduce((s,x) => s+x.count, 0) || 1;
+      new Chart(document.getElementById(id), { type: 'doughnut', data: {
+        labels: arr.map(x => (labelMap[x[keyField]] || x[keyField]) + ' — ' + Math.round(x.count/t*100) + '%'),
+        datasets: [{ data: arr.map(x => x.count), backgroundColor: palette, borderWidth: 0 }]
+      }, options: { ...chartDefaults, cutout: '65%',
+        plugins: { ...chartDefaults.plugins,
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' чел. (' + Math.round(ctx.raw/t*100) + '%)' } }
+        }
+      }});
+    };
+
+    mkDoughnut('c-age', data.byAge, 'age_group', {'18-25':'18-25','26-35':'26-35','36-45':'36-45','46+':'46+'});
+    mkDoughnut('c-prior', data.byPrior, 'prior', priorLabels);
+    mkBar('c-duration', data.byDuration, 'duration', {}, '#3a8c7c');
+    if (data.byExpDuration && data.byExpDuration.length) {
+      new Chart(document.getElementById('c-exp-duration'), { type: 'bar', data: { labels: data.byExpDuration.map(e => e.unit + ' (ср. ' + e.avg + ')'), datasets: [{ label: 'Человек', data: data.byExpDuration.map(e => e.count), backgroundColor: '#c9a84c', borderRadius: 4, borderWidth: 0 }] }, options: { ...chartDefaults, scales: { x: darkScale, y: darkScale }, plugins: { ...chartDefaults.plugins, legend: { display: false } } } });
+    }
+    mkDoughnut('c-effects-presence', data.byEffectsPresence, 'effects_presence', presenceLabels);
+    mkDoughnut('c-preparation', data.byPreparation, 'preparation', prepLabels);
+    mkDoughnut('c-setting', data.bySetting, 'setting', settingLabels);
+    mkDoughnut('c-trip-mushroom', data.byTripMushroom, 'trip_mushroom', tripMushroomLabels);
+    mkBar('c-trip-dosage', data.byTripDosage, 'trip_state', tripDosageLabels, '#7a4a8c');
+    mkBar('c-repeat', data.wouldRepeat, 'would_repeat', repeatLabels, '#4a8c5c');
+    mkBar('c-safety', data.bySafety, 'safety', safetyLabels, '#c8392b');
+    if (data.byReason && data.byReason.length) mkBarH('c-reason', data.byReason, 'reason', reasonLabels, '#b8922a');
+    if (data.byPhysical && data.byPhysical.length) mkBarH('c-physical', data.byPhysical, 'effect', physLabels, '#3a6a9c');
+    if (data.byMental && data.byMental.length) mkBarH('c-mental', data.byMental, 'effect', mentLabels, '#7a4a8c');
+
+    // Cross-analysis charts
+    const prepLabels2 = {raw:'Сырой',dried_caps:'Шляпки',powder:'Порошок',capsule:'Капсулы',extract:'Экстракт',other:'Другое'};
+    if (data.byPrepDosage && data.byPrepDosage.length) {
+      new Chart(document.getElementById('c-prep-dosage'), { type: 'bar', data: { labels: data.byPrepDosage.map(x => prepLabels2[x.preparation] || x.preparation), datasets: [{ label: 'Средняя дозировка (г)', data: data.byPrepDosage.map(x => x.avg_dosage.toFixed(1)), backgroundColor: '#3a8c7c', borderRadius: 4, borderWidth: 0 }] }, options: { ...chartDefaults, scales: { x: darkScale, y: darkScale }, plugins: { ...chartDefaults.plugins, legend: { display: false } } } });
+    }
+    if (data.byAgeRating && data.byAgeRating.length) {
+      new Chart(document.getElementById('c-age-rating'), { type: 'bar', data: { labels: data.byAgeRating.map(x => x.age_group), datasets: [{ label: 'Средняя оценка', data: data.byAgeRating.map(x => x.avg_rating.toFixed(1)), backgroundColor: '#c9a84c', borderRadius: 4, borderWidth: 0 }] }, options: { ...chartDefaults, scales: { x: darkScale, y: { ...darkScale, max: 10 } }, plugins: { ...chartDefaults.plugins, legend: { display: false } } } });
+    }
+    if (data.byGenderExp && data.byGenderExp.length) {
+      const genders = ['female','male'];
+      const expTypes = ['positive','negative','mixed','neutral'];
+      const gLabels2 = {female:'Женщина',male:'Мужчина',other:'Другое'};
+      const eLabels2 = {positive:'Позитивный',negative:'Негативный',mixed:'Смешанный',neutral:'Нейтральный'};
+      const gExpColors = ['#4a8c5c','#c8392b','#c9a84c','#3a6a9c'];
+      new Chart(document.getElementById('c-gender-exp'), { type: 'bar', data: { labels: genders.map(g => gLabels2[g] || g), datasets: expTypes.map((exp, i) => ({ label: eLabels2[exp] || exp, data: genders.map(g => { const found = data.byGenderExp.find(x => x.gender === g && x.experience_type === exp); return found ? found.count : 0; }), backgroundColor: gExpColors[i], borderRadius: 3, borderWidth: 0 })) }, options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } } });
+    }
+    if (data.bySafetyExp && data.bySafetyExp.length) {
+      const safeties = ['none','mild','serious','hospitalization'];
+      const sLabels2 = {none:'Нет',mild:'Незначительные',serious:'Серьёзные',hospitalization:'Госпитализация'};
+      const expTypes2 = ['positive','negative','mixed','neutral'];
+      const eLabels3 = {positive:'Позитивный',negative:'Негативный',mixed:'Смешанный',neutral:'Нейтральный'};
+      const sColors = ['#4a8c5c','#c8392b','#c9a84c','#3a6a9c'];
+      new Chart(document.getElementById('c-safety-exp'), { type: 'bar', data: { labels: safeties.map(s => sLabels2[s] || s), datasets: expTypes2.map((exp, i) => ({ label: eLabels3[exp] || exp, data: safeties.map(s => { const found = data.bySafetyExp.find(x => x.safety === s && x.experience_type === exp); return found ? found.count : 0; }), backgroundColor: sColors[i], borderRadius: 3, borderWidth: 0 })) }, options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } } });
     }
     chartsInitialized = true;
   } catch (e) {

@@ -113,13 +113,117 @@ app.get('/api/stats', async (req, res) => {
     });
     const byReason = Object.keys(reasonMap).map(k => ({ reason: k, count: reasonMap[k] })).sort((a, b) => b.count - a.count);
 
+    // Physical effects frequency
+    const physMap = {};
+    reviews.forEach(r => {
+      const effects = Array.isArray(r.physical_effects) ? r.physical_effects : [];
+      effects.forEach(e => { if (!physMap[e]) physMap[e] = 0; physMap[e]++; });
+    });
+    const byPhysical = Object.keys(physMap).map(k => ({ effect: k, count: physMap[k] })).sort((a,b) => b.count - a.count);
+
+    // Mental effects frequency
+    const mentMap = {};
+    reviews.forEach(r => {
+      const effects = Array.isArray(r.mental_effects) ? r.mental_effects : [];
+      effects.forEach(e => { if (!mentMap[e]) mentMap[e] = 0; mentMap[e]++; });
+    });
+    const byMental = Object.keys(mentMap).map(k => ({ effect: k, count: mentMap[k] })).sort((a,b) => b.count - a.count);
+
+    // Trip states
+    const byTripMushroom = groupBy(reviews, 'trip_mushroom').map(g => ({ trip_mushroom: g.key, count: g.items.length }));
+    const byTripDosage = groupBy(reviews, 'trip_state').map(g => ({ trip_state: g.key, count: g.items.length }));
+
+    // Effects presence
+    const byEffectsPresence = groupBy(reviews, 'effects_presence').map(g => ({ effects_presence: g.key, count: g.items.length }));
+
+    // Would repeat
+    const byWouldRepeat = groupBy(reviews, 'would_repeat').map(g => ({ would_repeat: g.key, count: g.items.length }));
+
+    // Safety concerns
+    const bySafety = groupBy(reviews, 'safety_concerns').map(g => ({ safety: g.key, count: g.items.length }));
+
+    // Setting
+    const bySetting = groupBy(reviews, 'setting').map(g => ({ setting: g.key, count: g.items.length }));
+
+    // Prior experience
+    const byPrior = groupBy(reviews, 'prior_experience').map(g => ({ prior: g.key, count: g.items.length }));
+
+    // Duration hours
+    const durRanges = [
+      { label: 'До 2 часов', fn: r => r.duration_hours && r.duration_hours < 2 },
+      { label: '2-4 часа', fn: r => r.duration_hours >= 2 && r.duration_hours < 4 },
+      { label: '4-6 часов', fn: r => r.duration_hours >= 4 && r.duration_hours < 6 },
+      { label: '6-8 часов', fn: r => r.duration_hours >= 6 && r.duration_hours < 8 },
+      { label: 'Более 8 часов', fn: r => r.duration_hours >= 8 },
+    ];
+    const byDuration = durRanges.map(range => {
+      const items = reviews.filter(range.fn);
+      return { duration: range.label, count: items.length };
+    }).filter(d => d.count > 0);
+
+    // Experience duration (months/years)
+    const expDurMap = {};
+    reviews.forEach(r => {
+      if (r.experience_duration_unit && r.experience_duration_value) {
+        const key = r.experience_duration_unit === 'years' ? 'Годы' : 'Месяцы';
+        if (!expDurMap[key]) expDurMap[key] = [];
+        expDurMap[key].push(r.experience_duration_value);
+      }
+    });
+    const byExpDuration = Object.keys(expDurMap).map(k => ({
+      unit: k,
+      avg: Math.round(expDurMap[k].reduce((s,v) => s+v, 0) / expDurMap[k].length),
+      count: expDurMap[k].length
+    }));
+
+    // Age groups
+    const byAge = groupBy(reviews, 'age_group').map(g => ({ age_group: g.key, count: g.items.length }));
+
+    // Avg dosage by preparation
+    const byPrepDosage = groupBy(reviews, 'preparation').map(g => ({
+      preparation: g.key,
+      avg_dosage: avg(g.items, 'dosage_grams'),
+      count: g.items.length
+    }));
+
+    // Age vs avg rating
+    const byAgeRating = groupBy(reviews, 'age_group').map(g => ({
+      age_group: g.key,
+      avg_rating: avg(g.items, 'overall_rating'),
+      count: g.items.length
+    }));
+
+    // Gender vs experience type cross
+    const genderExpCross = {};
+    reviews.forEach(r => {
+      const key = (r.gender || 'unknown') + '_' + (r.experience_type || 'unknown');
+      if (!genderExpCross[key]) genderExpCross[key] = 0;
+      genderExpCross[key]++;
+    });
+    const byGenderExp = Object.keys(genderExpCross).map(k => {
+      const [gender, exp] = k.split('_');
+      return { gender, experience_type: exp, count: genderExpCross[k] };
+    });
+
+    // Safety vs experience type
+    const safetyExpCross = {};
+    reviews.forEach(r => {
+      const key = (r.safety_concerns || 'none') + '_' + (r.experience_type || 'unknown');
+      if (!safetyExpCross[key]) safetyExpCross[key] = 0;
+      safetyExpCross[key]++;
+    });
+    const bySafetyExp = Object.keys(safetyExpCross).map(k => {
+      const [safety, exp] = k.split('_');
+      return { safety, experience_type: exp, count: safetyExpCross[k] };
+    });
+
     const recent = reviews.slice(-10).reverse().map(r => ({
       gender: r.gender, age_group: r.age_group, mushroom_type: r.mushroom_type,
       dosage_grams: r.dosage_grams, experience_type: r.experience_type,
       overall_rating: r.overall_rating, review_text: r.review_text, created_at: r.created_at
     }));
 
-    res.json({ total: reviews.length, byGender, byMushroom, byExperience, byDosage, byPreparation, ratingDist, wouldRepeat, byReason, recent });
+    res.json({ total: reviews.length, byGender, byMushroom, byExperience, byDosage, byPreparation, ratingDist, wouldRepeat: byWouldRepeat, byReason, byPhysical, byMental, byTripMushroom, byTripDosage, byEffectsPresence, bySafety, bySetting, byPrior, byDuration, byExpDuration, byAge, byPrepDosage, byAgeRating, byGenderExp, bySafetyExp, recent });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Ошибка сервера' });
