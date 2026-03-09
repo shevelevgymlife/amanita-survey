@@ -104,8 +104,19 @@ app.get('/api/stats', (req, res) => {
     const ratingDist = [];
     for (let i = 1; i <= 10; i++) { const count = reviews.filter(r => r.overall_rating === i).length; if (count > 0) ratingDist.push({ overall_rating: i, count }); }
     const wouldRepeat = groupBy(reviews, 'would_repeat').map(g => ({ would_repeat: g.key, count: g.items.length }));
+
+    // By reason (multi-select - flatten array)
+    const reasonMap = {};
+    reviews.forEach(r => {
+      const reasons = Array.isArray(r.reason) ? r.reason : (r.reason ? [r.reason] : []);
+      reasons.forEach(reason => {
+        if (!reasonMap[reason]) reasonMap[reason] = 0;
+        reasonMap[reason]++;
+      });
+    });
+    const byReason = Object.keys(reasonMap).map(k => ({ reason: k, count: reasonMap[k] })).sort((a,b) => b.count - a.count);
     const recent = reviews.slice(-10).reverse().map(r => ({ gender: r.gender, age_group: r.age_group, mushroom_type: r.mushroom_type, dosage_grams: r.dosage_grams, experience_type: r.experience_type, overall_rating: r.overall_rating, review_text: r.review_text, created_at: r.created_at }));
-    res.json({ total: reviews.length, byGender, byMushroom, byExperience, byDosage, byPreparation, ratingDist, wouldRepeat, recent });
+    res.json({ total: reviews.length, byGender, byMushroom, byExperience, byDosage, byPreparation, ratingDist, wouldRepeat, byReason, recent });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Ошибка сервера' });

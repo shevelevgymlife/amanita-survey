@@ -454,22 +454,21 @@
           </select>
         </div>
         <div class="form-group full">
-          <label>Причина приёма <span class="req">*</span></label>
-          <select id="reason">
-            <option value="">— выбрать —</option>
-            <option value="drug_addiction">Наркотическая зависимость</option>
-            <option value="nicotine_addiction">Сигаретная зависимость</option>
-            <option value="alcohol_addiction">Алкогольная зависимость</option>
-            <option value="anxiety">Тревожное расстройство</option>
-            <option value="depression">Депрессивное расстройство</option>
-            <option value="insomnia">Бессонница</option>
-            <option value="icd_list">Из списка МКБ</option>
-            <option value="self_understanding">Понять себя</option>
-            <option value="curiosity">Просто попробовать</option>
-            <option value="trauma">Психологическая травма</option>
-            <option value="for_effects">Ради эффектов</option>
-            <option value="other">Другое</option>
-          </select>
+          <label>Причина приёма (можно выбрать несколько)</label>
+          <div class="checkbox-grid" style="margin-top:0.5rem">
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="drug_addiction"> Наркотическая зависимость</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="nicotine_addiction"> Сигаретная зависимость</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="alcohol_addiction"> Алкогольная зависимость</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="anxiety"> Тревожное расстройство</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="depression"> Депрессивное расстройство</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="insomnia"> Бессонница</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="icd_list"> Из списка МКБ</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="self_understanding"> Понять себя</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="curiosity"> Просто попробовать</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="trauma"> Психологическая травма</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="for_effects"> Ради эффектов</label>
+            <label class="checkbox-item"><input type="checkbox" name="reason" value="other"> Другое</label>
+          </div>
         </div>
       </div>
     </div>
@@ -635,6 +634,23 @@
         <div class="form-group full">
           <label>Ваш опыт (опционально — анонимно)</label>
           <textarea id="review_text" placeholder="Опишите свой опыт своими словами..." oninput="filterMat(this)"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">07 · Опыт приёма</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Как давно принимаете мухоморы?</label>
+          <select id="experience_duration_unit">
+            <option value="months">Месяцев</option>
+            <option value="years">Лет</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Количество</label>
+          <input type="number" id="experience_duration_value" min="1" max="99" step="1" placeholder="например: 6">
         </div>
       </div>
     </div>
@@ -829,6 +845,7 @@ async function loadStats() {
       <div class="chart-card"><div class="chart-title">Средняя оценка по виду</div><canvas id="c-rating"></canvas></div>
       <div class="chart-card"><div class="chart-title">Диапазоны дозировок</div><canvas id="c-dosage"></canvas></div>
       <div class="chart-card"><div class="chart-title">Распределение оценок</div><canvas id="c-ratings-dist"></canvas></div>
+      <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Причины приёма</div><canvas id="c-reason" style="max-height:300px"></canvas></div>
     `;
     document.getElementById('chartsGrid').innerHTML = chartsHTML;
 
@@ -923,6 +940,10 @@ async function loadStats() {
       options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } }
     });
 
+    const reasonLabels = {drug_addiction:'Наркотическая зависимость',nicotine_addiction:'Сигаретная зависимость',alcohol_addiction:'Алкогольная зависимость',anxiety:'Тревожное расстройство',depression:'Депрессивное расстройство',insomnia:'Бессонница',icd_list:'Из списка МКБ',self_understanding:'Понять себя',curiosity:'Просто попробовать',trauma:'Психологическая травма',for_effects:'Ради эффектов',other:'Другое'};
+    if (data.byReason && data.byReason.length) {
+      new Chart(document.getElementById('c-reason'), { type: 'bar', data: { labels: data.byReason.map(r => reasonLabels[r.reason] || r.reason), datasets: [{ label: 'Отзывов', data: data.byReason.map(r => r.count), backgroundColor: '#b8922a', borderRadius: 4, borderWidth: 0 }] }, options: { ...chartOpts, indexAxis: 'y', scales: { x: darkScale, y: darkScale }, plugins: { legend: { display: false } } } });
+    }
     chartsInitialized = true;
   } catch (e) {
     document.getElementById('statsLoading').textContent = 'Ошибка загрузки данных';
