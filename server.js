@@ -18,11 +18,13 @@ function readDB() {
       fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
     }
     if (!fs.existsSync(DB_PATH)) {
-      fs.writeFileSync(DB_PATH, JSON.stringify({ reviews: [], nextId: 1 }));
+      fs.writeFileSync(DB_PATH, JSON.stringify({ reviews: [], nextId: 1, usedIPs: [] }));
     }
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    if (!data.usedIPs) data.usedIPs = [];
+    return data;
   } catch (e) {
-    return { reviews: [], nextId: 1 };
+    return { reviews: [], nextId: 1, usedIPs: [] };
   }
 }
 
@@ -30,16 +32,55 @@ function writeDB(data) {
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 }
 
+function getIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+}
+
+// Проверить — уже голосовал?
+app.get('/api/check', (req, res) => {
+  const ip = getIP(req);
+  const db = readDB();
+  const voted = db.usedIPs.includes(ip);
+  res.json({ voted });
+});
+
+// Отправить отзыв
 app.post('/api/reviews', (req, res) => {
   try {
+    const ip = getIP(req);
+    const db = readDB();
+
+    // Проверка по IP
+    if (db.usedIPs.includes(ip)) {
+      return res.status(429).json({ error: 'duplicate', message: 'Вы уже оставляли отзыв. Спасибо!' });
+    }
+
     const { gender, age_group, mushroom_type, preparation, dosage_grams, experience_type, duration_hours, setting, physical_effects, mental_effects, overall_rating, would_repeat, safety_concerns, review_text, prior_experience } = req.body;
+
     if (!gender || !mushroom_type || !dosage_grams || !overall_rating || !experience_type) {
       return res.status(400).json({ error: 'Заполните обязательные поля' });
     }
-    const db = readDB();
-    const review = { id: db.nextId++, created_at: new Date().toISOString(), gender, age_group, mushroom_type, preparation, dosage_grams: parseFloat(dosage_grams), experience_type, duration_hours: duration_hours ? parseFloat(duration_hours) : null, setting, physical_effects: physical_effects || [], mental_effects: mental_effects || [], overall_rating: parseInt(overall_rating), would_repeat, safety_concerns, review_text: review_text || '', prior_experience };
+
+    const review = {
+      id: db.nextId++,
+      created_at: new Date().toISOString(),
+      gender, age_group, mushroom_type, preparation,
+      dosage_grams: parseFloat(dosage_grams),
+      experience_type,
+      duration_hours: duration_hours ? parseFloat(duration_hours) : null,
+      setting,
+      physical_effects: physical_effects || [],
+      mental_effects: mental_effects || [],
+      overall_rating: parseInt(overall_rating),
+      would_repeat, safety_concerns,
+      review_text: review_text || '',
+      prior_experience
+    };
+
     db.reviews.push(review);
+    db.usedIPs.push(ip); // запомнить IP
     writeDB(db);
+
     res.json({ success: true, id: review.id });
   } catch (err) {
     console.error(err);
@@ -47,6 +88,7 @@ app.post('/api/reviews', (req, res) => {
   }
 });
 
+// Статистика
 app.get('/api/stats', (req, res) => {
   try {
     const db = readDB();

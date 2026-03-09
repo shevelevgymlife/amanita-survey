@@ -399,9 +399,14 @@
 <body>
 
 <header>
-  <div class="header-eyebrow">Анонимное исследование · Harm Reduction Project</div>
+  <div class="header-eyebrow">Анонимное исследование · Harm Reduction Project (снижение вреда)</div>
   <h1>Опыт с <span>Мухомором</span></h1>
   <p class="header-sub">Анонимный сбор данных для научного изучения эффектов. Ни один отзыв не содержит личных данных.</p>
+    <div style="margin-top:1.2rem">
+      <a href="https://t.me/ShevelevVlog" target="_blank" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.7rem 1.5rem;background:var(--red);color:white;text-decoration:none;border-radius:4px;font-family:Unbounded,sans-serif;font-size:0.65rem;letter-spacing:0.1em;transition:background 0.2s;font-weight:400" onmouseover="this.style.background='#e05c4b'" onmouseout="this.style.background='var(--red)'">
+        ✈ Подписаться на ShevelevVlog
+      </a>
+    </div>
 </header>
 
 <nav class="nav">
@@ -413,7 +418,7 @@
 <main>
 
   <div class="disclaimer">
-    <strong>⚠️ Дисклеймер:</strong> Данный проект является исследовательским и не пропагандирует употребление психоактивных веществ. Мухоморы содержат токсичные вещества и могут быть опасны для жизни. Вся информация собирается анонимно в целях harm reduction — снижения вреда и изучения реального опыта людей.
+    <strong>⚠️ Дисклеймер:</strong> Данный проект от ShevelevVlog является исследовательским и не пропагандирует употребление психоактивных веществ. Мухоморы правильно высушенные не содержат токсичных веществ. Вся информация собирается анонимно в целях harm reduction — снижения вреда и изучения реального опыта людей. Ваш любой опыт может быть опасен для жизни. Всю ответственность вы берете на себя.
   </div>
 
   <!-- ── FORM PAGE ── -->
@@ -441,11 +446,29 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Предыдущий опыт</label>
+          <label>Опыт</label>
           <select id="prior_experience">
             <option value="none">Первый раз</option>
             <option value="few">Несколько раз</option>
             <option value="experienced">Опытный пользователь</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Причина приёма <span class="req">*</span></label>
+          <select id="reason">
+            <option value="">— выбрать —</option>
+            <option value="drug_addiction">Наркотическая зависимость</option>
+            <option value="nicotine_addiction">Сигаретная зависимость</option>
+            <option value="alcohol_addiction">Алкогольная зависимость</option>
+            <option value="anxiety">Тревожное расстройство</option>
+            <option value="depression">Депрессивное расстройство</option>
+            <option value="insomnia">Бессонница</option>
+            <option value="icd_list">Из списка МКБ</option>
+            <option value="self_understanding">Понять себя</option>
+            <option value="curiosity">Просто попробовать</option>
+            <option value="trauma">Психологическая травма</option>
+            <option value="for_effects">Ради эффектов</option>
+            <option value="other">Другое</option>
           </select>
         </div>
       </div>
@@ -465,23 +488,30 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Способ приготовления</label>
-          <select id="preparation">
-            <option value="raw">Сырой</option>
-            <option value="dried">Сушёный</option>
-            <option value="tea">Чай / отвар</option>
-            <option value="tincture">Настойка</option>
+          <label>Вид применения</label>
+          <select id="preparation" onchange="toggleDosageUnit()">
+            <option value="raw">Сырой — не сушёный</option>
+            <option value="dried_caps">Шляпки сушёные</option>
+            <option value="powder">Молотый в порошке</option>
             <option value="capsule">Капсулы</option>
+            <option value="extract">Экстракт</option>
             <option value="other">Другое</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Дозировка (граммы сухого) <span class="req">*</span></label>
+          <label id="dosage_label">Дозировка (граммы) <span class="req">*</span></label>
           <input type="number" id="dosage_grams" min="0.1" max="100" step="0.1" placeholder="например: 2.5">
         </div>
         <div class="form-group">
-          <label>Длительность (часы)</label>
+          <label>Длительность (часы) — сколько часов ощущались эффекты</label>
           <input type="number" id="duration_hours" min="0.5" max="24" step="0.5" placeholder="например: 4">
+        </div>
+        <div class="form-group">
+          <label>Наличие эффектов</label>
+          <select id="effects_presence">
+            <option value="yes">Эффекты ощущались</option>
+            <option value="no">Вообще не ощущаю эффектов после приёма</option>
+          </select>
         </div>
       </div>
     </div>
@@ -513,6 +543,19 @@
     </div>
 
     <div class="form-section">
+      <div class="form-section-title">03.5 · Триповые состояния</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Испытывали триповые состояния?</label>
+          <select id="trip_state">
+            <option value="yes">Испытывал триповые состояния</option>
+            <option value="no">Не испытывал триповых состояний</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
       <div class="form-section-title">04 · Физические эффекты</div>
       <div class="checkbox-grid">
         <label class="checkbox-item"><input type="checkbox" name="physical" value="nausea"> Тошнота</label>
@@ -524,6 +567,10 @@
         <label class="checkbox-item"><input type="checkbox" name="physical" value="increased_salivation"> Слюноотделение</label>
         <label class="checkbox-item"><input type="checkbox" name="physical" value="body_warmth"> Тепло в теле</label>
         <label class="checkbox-item"><input type="checkbox" name="physical" value="tremor"> Тремор</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="loss_coordination"> Потеря координации</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="bright_vision"> Яркость зрения</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="foggy_vision"> Туманность в зрении</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="body_activity"> Повышение активности в теле</label>
         <label class="checkbox-item"><input type="checkbox" name="physical" value="none_physical"> Ничего из вышеперечисленного</label>
       </div>
     </div>
@@ -540,6 +587,12 @@
         <label class="checkbox-item"><input type="checkbox" name="mental" value="memory_gaps"> Провалы памяти</label>
         <label class="checkbox-item"><input type="checkbox" name="mental" value="introspection"> Глубокая интроспекция</label>
         <label class="checkbox-item"><input type="checkbox" name="mental" value="altered_perception"> Изменение восприятия</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="psychotherapy"> Психотерапевтический эффект</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="euphoric_state"> Эйфорическое состояние</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="negative_state"> Негативное состояние</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="sleepy_state"> Сонное состояние</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="cns_relaxation"> Расслабление ЦНС</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="cns_stimulation"> Стимуляция ЦНС</label>
         <label class="checkbox-item"><input type="checkbox" name="mental" value="none_mental"> Ничего из вышеперечисленного</label>
       </div>
     </div>
@@ -581,7 +634,7 @@
         </div>
         <div class="form-group full">
           <label>Ваш опыт (опционально — анонимно)</label>
-          <textarea id="review_text" placeholder="Опишите свой опыт своими словами..."></textarea>
+          <textarea id="review_text" placeholder="Опишите свой опыт своими словами..." oninput="filterMat(this)"></textarea>
         </div>
       </div>
     </div>
@@ -616,6 +669,33 @@
 
 <script>
 let selectedRating = 0;
+
+// ── COOKIE HELPERS ──
+function setCookie(name, value, days) {
+  const d = new Date();
+  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/';
+}
+function getCookie(name) {
+  const ca = document.cookie.split(';');
+  for (let c of ca) { c = c.trim(); if (c.startsWith(name + '=')) return c.substring(name.length + 1); }
+  return '';
+}
+window.addEventListener('load', async () => {
+  if (getCookie('amanita_voted') === '1') { showAlreadyVoted(); return; }
+  try {
+    const r = await fetch('/api/check');
+    const data = await r.json();
+    if (data.voted) { setCookie('amanita_voted', '1', 365); showAlreadyVoted(); }
+  } catch(e) {}
+});
+function showAlreadyVoted() {
+  document.getElementById('submitBtn').style.display = 'none';
+  const msg = document.createElement('div');
+  msg.style.cssText = 'text-align:center;padding:2rem;background:#1a1a14;border:1px solid #3a3a2a;border-radius:8px;margin-top:1rem;';
+  msg.innerHTML = '<div style="font-size:2rem;margin-bottom:0.8rem">✅</div><div style="font-family:Unbounded,sans-serif;color:#c9a84c;font-size:0.8rem;margin-bottom:0.5rem">ВЫ УЖЕ ОСТАВИЛИ ОТЗЫВ</div><div style="color:#7a7468;font-size:0.85rem">Спасибо за участие в исследовании!</div>';
+  document.getElementById('page-form').appendChild(msg);
+}
 
 // ── NAVIGATION ──
 function showPage(name, load) {
@@ -679,6 +759,7 @@ async function submitForm() {
 
     const data = await response.json();
     if (data.success) {
+      setCookie('amanita_voted', '1', 365);
       btn.style.display = 'none';
       document.getElementById('successMsg').style.display = 'block';
     } else {
@@ -881,6 +962,33 @@ async function loadReviews() {
     `).join('');
   } catch (e) {
     document.getElementById('reviewsLoading').textContent = 'Ошибка загрузки';
+  }
+}
+
+// ── ФИЛЬТР МАТЕРНЫХ СЛОВ ──
+const matWords = ['бля','блять','блiad','хуй','хуя','хуе','пизд','пизда','ёбан','ебан','еbан','ёб','еб ','еби','ебать','пиzд','сука','cука','cука','мудак','мудил','залуп','шлюх','блад','блат'];
+function filterMat(el) {
+  let val = el.value.toLowerCase();
+  let found = matWords.some(w => val.includes(w));
+  if (found) {
+    el.style.borderColor = 'var(--red)';
+    el.title = 'Пожалуйста, не используйте нецензурные слова';
+    // убираем последний введённый символ
+    el.value = el.value.slice(0, -1);
+    setTimeout(() => { el.style.borderColor = ''; el.title = ''; }, 2000);
+  }
+}
+
+// ── ПЕРЕКЛЮЧЕНИЕ ЕДИНИЦ ДОЗИРОВКИ ──
+function toggleDosageUnit() {
+  const prep = document.getElementById('preparation').value;
+  const label = document.getElementById('dosage_label');
+  if (prep === 'extract') {
+    label.innerHTML = 'Дозировка (миллилитры) <span class=\'req\'>*</span>';
+    document.getElementById('dosage_grams').placeholder = 'например: 5';
+  } else {
+    label.innerHTML = 'Дозировка (граммы) <span class=\'req\'>*</span>';
+    document.getElementById('dosage_grams').placeholder = 'например: 2.5';
   }
 }
 </script>
