@@ -545,10 +545,22 @@
       <div class="form-section-title">03.5 · Триповые состояния</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Испытывали триповые состояния?</label>
+          <label>Какой гриб вызвал триповые состояния?</label>
+          <select id="trip_mushroom">
+            <option value="never">Никогда не испытывал триповых состояний</option>
+            <option value="red">🔴 Красный мухомор</option>
+            <option value="panther">🟤 Пантерный мухомор</option>
+            <option value="royal">👑 Королевский мухомор</option>
+          </select>
+        </div>
+        <div class="form-group" id="trip_dosage_group">
+          <label>На какой дозировке вы испытывали триповые состояния?</label>
           <select id="trip_state">
-            <option value="yes">Испытывал триповые состояния</option>
-            <option value="no">Не испытывал триповых состояний</option>
+            <option value="under1">До 1 грамма</option>
+            <option value="1to3">1 — 3 грамма</option>
+            <option value="3to6">3 — 6 граммов</option>
+            <option value="6to10">6 — 10 граммов</option>
+            <option value="over10">Более 10 граммов</option>
           </select>
         </div>
       </div>
@@ -985,6 +997,22 @@ async function loadReviews() {
     document.getElementById('reviewsLoading').textContent = 'Ошибка загрузки';
   }
 }
+
+// ── ТРИПОВЫЕ СОСТОЯНИЯ ──
+document.addEventListener('DOMContentLoaded', () => {
+  const tripMushroom = document.getElementById('trip_mushroom');
+  const tripDosageGroup = document.getElementById('trip_dosage_group');
+  if (tripMushroom) {
+    tripDosageGroup.style.display = 'none';
+    tripMushroom.addEventListener('change', () => {
+      if (tripMushroom.value === 'never') {
+        tripDosageGroup.style.display = 'none';
+      } else {
+        tripDosageGroup.style.display = 'flex';
+      }
+    });
+  }
+});
 
 // ── ФИЛЬТР МАТЕРНЫХ СЛОВ ──
 const matWords = ['бля','блять','блiad','хуй','хуя','хуе','пизд','пизда','ёбан','ебан','еbан','ёб','еб ','еби','ебать','пиzд','сука','cука','cука','мудак','мудил','залуп','шлюх','блад','блат'];
