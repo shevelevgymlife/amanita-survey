@@ -1,178 +1,76 @@
 const express = require('express');
-const Database = require('better-sqlite3');
 const path = require('path');
 const cors = require('cors');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database setup
-const db = new Database(path.join(__dirname, 'data', 'reviews.db'));
+const DB_PATH = path.join(__dirname, 'data', 'reviews.json');
 
-// Create table
-db.exec(`
-  CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    gender TEXT NOT NULL,
-    age_group TEXT NOT NULL,
-    mushroom_type TEXT NOT NULL,
-    preparation TEXT NOT NULL,
-    dosage_grams REAL NOT NULL,
-    experience_type TEXT NOT NULL,
-    duration_hours REAL,
-    setting TEXT,
-    physical_effects TEXT,
-    mental_effects TEXT,
-    overall_rating INTEGER NOT NULL,
-    would_repeat TEXT NOT NULL,
-    safety_concerns TEXT,
-    review_text TEXT,
-    prior_experience TEXT NOT NULL
-  )
-`);
+function readDB() {
+  try {
+    if (!fs.existsSync(path.join(__dirname, 'data'))) {
+      fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+    }
+    if (!fs.existsSync(DB_PATH)) {
+      fs.writeFileSync(DB_PATH, JSON.stringify({ reviews: [], nextId: 1 }));
+    }
+    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+  } catch (e) {
+    return { reviews: [], nextId: 1 };
+  }
+}
 
-// ─── ROUTES ───────────────────────────────────────────────
+function writeDB(data) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+}
 
-// Submit review
 app.post('/api/reviews', (req, res) => {
   try {
-    const {
-      gender, age_group, mushroom_type, preparation,
-      dosage_grams, experience_type, duration_hours,
-      setting, physical_effects, mental_effects,
-      overall_rating, would_repeat, safety_concerns,
-      review_text, prior_experience
-    } = req.body;
-
-    // Validation
-    if (!gender || !mushroom_type || !dosage_grams || !overall_rating) {
+    const { gender, age_group, mushroom_type, preparation, dosage_grams, experience_type, duration_hours, setting, physical_effects, mental_effects, overall_rating, would_repeat, safety_concerns, review_text, prior_experience } = req.body;
+    if (!gender || !mushroom_type || !dosage_grams || !overall_rating || !experience_type) {
       return res.status(400).json({ error: 'Заполните обязательные поля' });
     }
-
-    const stmt = db.prepare(`
-      INSERT INTO reviews (
-        gender, age_group, mushroom_type, preparation,
-        dosage_grams, experience_type, duration_hours,
-        setting, physical_effects, mental_effects,
-        overall_rating, would_repeat, safety_concerns,
-        review_text, prior_experience
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = stmt.run(
-      gender, age_group, mushroom_type, preparation,
-      dosage_grams, experience_type, duration_hours,
-      setting,
-      JSON.stringify(physical_effects || []),
-      JSON.stringify(mental_effects || []),
-      overall_rating, would_repeat, safety_concerns,
-      review_text, prior_experience
-    );
-
-    res.json({ success: true, id: result.lastInsertRowid });
+    const db = readDB();
+    const review = { id: db.nextId++, created_at: new Date().toISOString(), gender, age_group, mushroom_type, preparation, dosage_grams: parseFloat(dosage_grams), experience_type, duration_hours: duration_hours ? parseFloat(duration_hours) : null, setting, physical_effects: physical_effects || [], mental_effects: mental_effects || [], overall_rating: parseInt(overall_rating), would_repeat, safety_concerns, review_text: review_text || '', prior_experience };
+    db.reviews.push(review);
+    writeDB(db);
+    res.json({ success: true, id: review.id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Get statistics
 app.get('/api/stats', (req, res) => {
   try {
-    const total = db.prepare('SELECT COUNT(*) as count FROM reviews').get();
-
-    // By gender
-    const byGender = db.prepare(`
-      SELECT gender, COUNT(*) as count, AVG(overall_rating) as avg_rating
-      FROM reviews GROUP BY gender
-    `).all();
-
-    // By mushroom type
-    const byMushroom = db.prepare(`
-      SELECT mushroom_type, COUNT(*) as count, AVG(overall_rating) as avg_rating,
-             AVG(dosage_grams) as avg_dosage
-      FROM reviews GROUP BY mushroom_type
-    `).all();
-
-    // By experience type (good/bad)
-    const byExperience = db.prepare(`
-      SELECT experience_type, COUNT(*) as count
-      FROM reviews GROUP BY experience_type
-    `).all();
-
-    // By dosage ranges
-    const byDosage = db.prepare(`
-      SELECT 
-        CASE 
-          WHEN dosage_grams < 1 THEN 'Микродоза (<1г)'
-          WHEN dosage_grams < 3 THEN 'Малая (1-3г)'
-          WHEN dosage_grams < 6 THEN 'Средняя (3-6г)'
-          WHEN dosage_grams < 10 THEN 'Высокая (6-10г)'
-          ELSE 'Очень высокая (>10г)'
-        END as dosage_range,
-        COUNT(*) as count,
-        AVG(overall_rating) as avg_rating
-      FROM reviews GROUP BY dosage_range
-    `).all();
-
-    // By preparation method
-    const byPreparation = db.prepare(`
-      SELECT preparation, COUNT(*) as count, AVG(overall_rating) as avg_rating
-      FROM reviews GROUP BY preparation
-    `).all();
-
-    // Rating distribution
-    const ratingDist = db.prepare(`
-      SELECT overall_rating, COUNT(*) as count
-      FROM reviews GROUP BY overall_rating ORDER BY overall_rating
-    `).all();
-
-    // Would repeat
-    const wouldRepeat = db.prepare(`
-      SELECT would_repeat, COUNT(*) as count
-      FROM reviews GROUP BY would_repeat
-    `).all();
-
-    // Recent reviews (last 10, anonymized)
-    const recent = db.prepare(`
-      SELECT gender, age_group, mushroom_type, dosage_grams, 
-             experience_type, overall_rating, review_text, created_at
-      FROM reviews ORDER BY created_at DESC LIMIT 10
-    `).all();
-
-    res.json({
-      total: total.count,
-      byGender,
-      byMushroom,
-      byExperience,
-      byDosage,
-      byPreparation,
-      ratingDist,
-      wouldRepeat,
-      recent
-    });
+    const db = readDB();
+    const reviews = db.reviews;
+    const groupBy = (arr, key) => { const map = {}; arr.forEach(item => { const k = item[key] || 'unknown'; if (!map[k]) map[k] = []; map[k].push(item); }); return Object.keys(map).map(k => ({ key: k, items: map[k] })); };
+    const avg = (arr, key) => arr.length ? arr.reduce((s, i) => s + (i[key] || 0), 0) / arr.length : 0;
+    const byGender = groupBy(reviews, 'gender').map(g => ({ gender: g.key, count: g.items.length, avg_rating: avg(g.items, 'overall_rating') }));
+    const byMushroom = groupBy(reviews, 'mushroom_type').map(g => ({ mushroom_type: g.key, count: g.items.length, avg_rating: avg(g.items, 'overall_rating'), avg_dosage: avg(g.items, 'dosage_grams') }));
+    const byExperience = groupBy(reviews, 'experience_type').map(g => ({ experience_type: g.key, count: g.items.length }));
+    const dosageRanges = [{ label: 'Микродоза (<1г)', fn: r => r.dosage_grams < 1 }, { label: 'Малая (1-3г)', fn: r => r.dosage_grams >= 1 && r.dosage_grams < 3 }, { label: 'Средняя (3-6г)', fn: r => r.dosage_grams >= 3 && r.dosage_grams < 6 }, { label: 'Высокая (6-10г)', fn: r => r.dosage_grams >= 6 && r.dosage_grams < 10 }, { label: 'Очень высокая (>10г)', fn: r => r.dosage_grams >= 10 }];
+    const byDosage = dosageRanges.map(range => { const items = reviews.filter(range.fn); return { dosage_range: range.label, count: items.length, avg_rating: avg(items, 'overall_rating') }; }).filter(d => d.count > 0);
+    const byPreparation = groupBy(reviews, 'preparation').map(g => ({ preparation: g.key, count: g.items.length, avg_rating: avg(g.items, 'overall_rating') }));
+    const ratingDist = [];
+    for (let i = 1; i <= 10; i++) { const count = reviews.filter(r => r.overall_rating === i).length; if (count > 0) ratingDist.push({ overall_rating: i, count }); }
+    const wouldRepeat = groupBy(reviews, 'would_repeat').map(g => ({ would_repeat: g.key, count: g.items.length }));
+    const recent = reviews.slice(-10).reverse().map(r => ({ gender: r.gender, age_group: r.age_group, mushroom_type: r.mushroom_type, dosage_grams: r.dosage_grams, experience_type: r.experience_type, overall_rating: r.overall_rating, review_text: r.review_text, created_at: r.created_at }));
+    res.json({ total: reviews.length, byGender, byMushroom, byExperience, byDosage, byPreparation, ratingDist, wouldRepeat, recent });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', reviews: db.prepare('SELECT COUNT(*) as c FROM reviews').get().c });
-});
+app.get('/api/health', (req, res) => { const db = readDB(); res.json({ status: 'ok', reviews: db.reviews.length }); });
+app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
-// Serve frontend for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.listen(PORT, () => {
-  console.log(`✅ Сервер запущен: http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Сервер запущен: http://localhost:${PORT}`));
