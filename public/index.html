@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мухомор — Исследование Опыта</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700;900&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a08;
+      --bg2: #111110;
+      --bg3: #1a1a17;
+      --card: #161614;
+      --border: #2a2a26;
+      --red: #c8392b;
+      --red-soft: #e05c4b;
+      --cream: #f0e8d8;
+      --cream-dim: #b8ad99;
+      --gold: #c9a84c;
+      --gold-soft: #e8c96a;
+      --green: #4a8c5c;
+      --green-soft: #6ab87e;
+      --text: #e8e0d0;
+      --text-dim: #7a7468;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Golos Text', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 3rem 2rem 2rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '🍄';
+      position: absolute;
+      font-size: 20rem;
+      opacity: 0.03;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .header-eyebrow {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: var(--red);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Unbounded', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 3.5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: var(--cream);
+      margin-bottom: 0.8rem;
+    }
+
+    h1 span { color: var(--red); }
+
+    .header-sub {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      max-width: 500px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    /* ── NAV TABS ── */
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-btn {
+      padding: 1rem 2rem;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .nav-btn.active {
+      color: var(--cream);
+      border-bottom-color: var(--red);
+    }
+
+    .nav-btn:hover { color: var(--cream); }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer {
+      background: linear-gradient(135deg, #1a0f0a, #0f0f08);
+      border: 1px solid #3a2010;
+      border-left: 3px solid var(--red);
+      padding: 1rem 1.5rem;
+      margin: 2rem auto;
+      max-width: 800px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: var(--cream-dim);
+      line-height: 1.6;
+    }
+
+    .disclaimer strong { color: var(--red-soft); }
+
+    /* ── MAIN LAYOUT ── */
+    main { max-width: 900px; margin: 0 auto; padding: 2rem; }
+
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── FORM ── */
+    .form-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-section-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.78rem;
+      color: var(--cream-dim);
+      letter-spacing: 0.05em;
+    }
+
+    label .req { color: var(--red); margin-left: 2px; }
+
+    select, input[type="number"], input[type="range"], textarea {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 0.6rem 0.8rem;
+      font-family: 'Golos Text', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--red);
+    }
+
+    textarea { resize: vertical; min-height: 100px; }
+
+    /* Checkboxes */
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.8rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all 0.15s;
+    }
+
+    .checkbox-item:hover { border-color: var(--red); }
+    .checkbox-item input { accent-color: var(--red); }
+
+    /* Rating stars */
+    .rating-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .rating-btn {
+      width: 40px; height: 40px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .rating-btn.active {
+      background: var(--red);
+      border-color: var(--red);
+      color: white;
+    }
+
+    /* Submit */
+    .btn-submit {
+      width: 100%;
+      padding: 1.2rem;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 1rem;
+    }
+
+    .btn-submit:hover { background: var(--red-soft); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── SUCCESS ── */
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 3rem;
+      background: var(--card);
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      margin-top: 1.5rem;
+    }
+
+    .success-msg .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .success-msg h3 {
+      font-family: 'Unbounded', sans-serif;
+      color: var(--green-soft);
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--cream);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      margin-top: 0.4rem;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .chart-title {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    canvas { max-height: 250px; }
+
+    /* Reviews list */
+    .review-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .review-meta {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.8rem;
+    }
+
+    .tag {
+      padding: 0.2rem 0.6rem;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-gender { background: #1a1a3a; color: #8888dd; }
+    .tag-mushroom { background: #1a2a1a; color: #88bb88; }
+    .tag-dose { background: #2a1a10; color: #cc8855; }
+    .tag-rating-good { background: #0a2a1a; color: var(--green-soft); }
+    .tag-rating-bad { background: #2a0a0a; color: var(--red-soft); }
+
+    .review-text { font-size: 0.88rem; color: var(--cream-dim); line-height: 1.6; }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-dim);
+      font-family: 'Unbounded', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      main { padding: 1rem; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Анонимное исследование · Harm Reduction Project</div>
+  <h1>Опыт с <span>Мухомором</span></h1>
+  <p class="header-sub">Анонимный сбор данных для научного изучения эффектов. Ни один отзыв не содержит личных данных.</p>
+</header>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showPage('form')">📝 Оставить отзыв</button>
+  <button class="nav-btn" onclick="showPage('stats', true)">📊 Статистика</button>
+  <button class="nav-btn" onclick="showPage('reviews', true)">💬 Отзывы</button>
+</nav>
+
+<main>
+
+  <div class="disclaimer">
+    <strong>⚠️ Дисклеймер:</strong> Данный проект является исследовательским и не пропагандирует употребление психоактивных веществ. Мухоморы содержат токсичные вещества и могут быть опасны для жизни. Вся информация собирается анонимно в целях harm reduction — снижения вреда и изучения реального опыта людей.
+  </div>
+
+  <!-- ── FORM PAGE ── -->
+  <div class="page active" id="page-form">
+
+    <div class="form-section">
+      <div class="form-section-title">01 · О вас</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Пол <span class="req">*</span></label>
+          <select id="gender">
+            <option value="">— выбрать —</option>
+            <option value="female">Женщина</option>
+            <option value="male">Мужчина</option>
+            <option value="other">Другое / не указывать</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Возрастная группа</label>
+          <select id="age_group">
+            <option value="18-25">18–25</option>
+            <option value="26-35" selected>26–35</option>
+            <option value="36-45">36–45</option>
+            <option value="46+">46+</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Предыдущий опыт</label>
+          <select id="prior_experience">
+            <option value="none">Первый раз</option>
+            <option value="few">Несколько раз</option>
+            <option value="experienced">Опытный пользователь</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">02 · Гриб и дозировка</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Вид мухомора <span class="req">*</span></label>
+          <select id="mushroom_type">
+            <option value="">— выбрать —</option>
+            <option value="red">🔴 Красный (Amanita muscaria)</option>
+            <option value="panther">🟤 Пантерный (Amanita pantherina)</option>
+            <option value="royal">👑 Королевский (Amanita regalis)</option>
+            <option value="other">Другой / неизвестный</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Способ приготовления</label>
+          <select id="preparation">
+            <option value="raw">Сырой</option>
+            <option value="dried">Сушёный</option>
+            <option value="tea">Чай / отвар</option>
+            <option value="tincture">Настойка</option>
+            <option value="capsule">Капсулы</option>
+            <option value="other">Другое</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Дозировка (граммы сухого) <span class="req">*</span></label>
+          <input type="number" id="dosage_grams" min="0.1" max="100" step="0.1" placeholder="например: 2.5">
+        </div>
+        <div class="form-group">
+          <label>Длительность (часы)</label>
+          <input type="number" id="duration_hours" min="0.5" max="24" step="0.5" placeholder="например: 4">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">03 · Контекст</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Обстановка</label>
+          <select id="setting">
+            <option value="nature">Природа</option>
+            <option value="home">Дома</option>
+            <option value="urban">Город</option>
+            <option value="ceremony">Ритуал / церемония</option>
+            <option value="other">Другое</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Тип опыта <span class="req">*</span></label>
+          <select id="experience_type">
+            <option value="">— выбрать —</option>
+            <option value="positive">✅ Позитивный</option>
+            <option value="negative">❌ Негативный</option>
+            <option value="mixed">⚡ Смешанный</option>
+            <option value="neutral">○ Нейтральный</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">04 · Физические эффекты</div>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="nausea"> Тошнота</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="sedation"> Седация / сонливость</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="sweating"> Потоотделение</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="dizziness"> Головокружение</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="vomiting"> Рвота</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="muscle_relaxation"> Расслабление мышц</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="increased_salivation"> Слюноотделение</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="body_warmth"> Тепло в теле</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="tremor"> Тремор</label>
+        <label class="checkbox-item"><input type="checkbox" name="physical" value="none_physical"> Ничего из вышеперечисленного</label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">05 · Психические эффекты</div>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="euphoria"> Эйфория</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="hallucinations"> Галлюцинации</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="anxiety"> Тревога</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="confusion"> Спутанность</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="dream_like"> Сноподобное состояние</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="time_distortion"> Искажение времени</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="memory_gaps"> Провалы памяти</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="introspection"> Глубокая интроспекция</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="altered_perception"> Изменение восприятия</label>
+        <label class="checkbox-item"><input type="checkbox" name="mental" value="none_mental"> Ничего из вышеперечисленного</label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">06 · Оценка</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Общая оценка опыта (1–10) <span class="req">*</span></label>
+          <div class="rating-group" id="ratingGroup">
+            <button class="rating-btn" onclick="setRating(1)">1</button>
+            <button class="rating-btn" onclick="setRating(2)">2</button>
+            <button class="rating-btn" onclick="setRating(3)">3</button>
+            <button class="rating-btn" onclick="setRating(4)">4</button>
+            <button class="rating-btn" onclick="setRating(5)">5</button>
+            <button class="rating-btn" onclick="setRating(6)">6</button>
+            <button class="rating-btn" onclick="setRating(7)">7</button>
+            <button class="rating-btn" onclick="setRating(8)">8</button>
+            <button class="rating-btn" onclick="setRating(9)">9</button>
+            <button class="rating-btn" onclick="setRating(10)">10</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Повторили бы снова?</label>
+          <select id="would_repeat">
+            <option value="yes">Да</option>
+            <option value="maybe">Возможно</option>
+            <option value="no">Нет</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Проблемы с безопасностью</label>
+          <select id="safety_concerns">
+            <option value="none">Нет</option>
+            <option value="mild">Незначительные</option>
+            <option value="serious">Серьёзные (требовалась помощь)</option>
+            <option value="hospitalization">Госпитализация</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Ваш опыт (опционально — анонимно)</label>
+          <textarea id="review_text" placeholder="Опишите свой опыт своими словами..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-submit" onclick="submitForm()" id="submitBtn">
+      ОТПРАВИТЬ АНОНИМНО
+    </button>
+
+    <div class="success-msg" id="successMsg">
+      <div class="icon">✅</div>
+      <h3>Спасибо! Отзыв записан.</h3>
+      <p style="color: var(--text-dim); font-size:0.85rem">Ваш опыт помогает другим принимать осознанные решения.</p>
+    </div>
+  </div>
+
+  <!-- ── STATS PAGE ── -->
+  <div class="page" id="page-stats">
+    <div class="loading" id="statsLoading">ЗАГРУЗКА ДАННЫХ...</div>
+    <div id="statsContent" style="display:none">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="charts-grid" id="chartsGrid"></div>
+    </div>
+  </div>
+
+  <!-- ── REVIEWS PAGE ── -->
+  <div class="page" id="page-reviews">
+    <div class="loading" id="reviewsLoading">ЗАГРУЗКА...</div>
+    <div id="reviewsList"></div>
+  </div>
+
+</main>
+
+<script>
+let selectedRating = 0;
+
+// ── NAVIGATION ──
+function showPage(name, load) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'stats') loadStats();
+  if (name === 'reviews') loadReviews();
+}
+
+// ── RATING ──
+function setRating(val) {
+  selectedRating = val;
+  document.querySelectorAll('.rating-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i < val);
+  });
+}
+
+// ── SUBMIT ──
+async function submitForm() {
+  const gender = document.getElementById('gender').value;
+  const mushroom_type = document.getElementById('mushroom_type').value;
+  const dosage = document.getElementById('dosage_grams').value;
+  const exp_type = document.getElementById('experience_type').value;
+
+  if (!gender || !mushroom_type || !dosage || !exp_type || !selectedRating) {
+    alert('Пожалуйста, заполните все обязательные поля (*)');
+    return;
+  }
+
+  const physicalEffects = [...document.querySelectorAll('input[name="physical"]:checked')].map(c => c.value);
+  const mentalEffects = [...document.querySelectorAll('input[name="mental"]:checked')].map(c => c.value);
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'ОТПРАВКА...';
+
+  try {
+    const response = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gender,
+        age_group: document.getElementById('age_group').value,
+        mushroom_type,
+        preparation: document.getElementById('preparation').value,
+        dosage_grams: parseFloat(dosage),
+        experience_type: exp_type,
+        duration_hours: parseFloat(document.getElementById('duration_hours').value) || null,
+        setting: document.getElementById('setting').value,
+        physical_effects: physicalEffects,
+        mental_effects: mentalEffects,
+        overall_rating: selectedRating,
+        would_repeat: document.getElementById('would_repeat').value,
+        safety_concerns: document.getElementById('safety_concerns').value,
+        review_text: document.getElementById('review_text').value,
+        prior_experience: document.getElementById('prior_experience').value
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      btn.style.display = 'none';
+      document.getElementById('successMsg').style.display = 'block';
+    } else {
+      alert('Ошибка: ' + data.error);
+      btn.disabled = false;
+      btn.textContent = 'ОТПРАВИТЬ АНОНИМНО';
+    }
+  } catch (e) {
+    alert('Ошибка соединения с сервером');
+    btn.disabled = false;
+    btn.textContent = 'ОТПРАВИТЬ АНОНИМНО';
+  }
+}
+
+// ── LOAD STATS ──
+let chartsInitialized = false;
+const chartInstances = {};
+
+async function loadStats() {
+  if (chartsInitialized) return;
+  document.getElementById('statsLoading').style.display = 'block';
+
+  try {
+    const r = await fetch('/api/stats');
+    const data = await r.json();
+
+    document.getElementById('statsLoading').style.display = 'none';
+    document.getElementById('statsContent').style.display = 'block';
+
+    // Summary cards
+    const avgRating = data.ratingDist.reduce((s, r) => s + r.overall_rating * r.count, 0) /
+                      Math.max(data.ratingDist.reduce((s, r) => s + r.count, 0), 1);
+
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-number">${data.total}</div>
+        <div class="stat-label">ВСЕГО ОТЗЫВОВ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${avgRating.toFixed(1)}</div>
+        <div class="stat-label">СРЕДНЯЯ ОЦЕНКА</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${data.byMushroom.length}</div>
+        <div class="stat-label">ВИДОВ ГРИБОВ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${(data.byExperience.find(e => e.experience_type === 'positive')?.count || 0)}</div>
+        <div class="stat-label">ПОЗИТИВНЫХ ОПЫТОВ</div>
+      </div>
+    `;
+
+    const colors = {
+      red: '#c8392b', gold: '#c9a84c', green: '#4a8c5c',
+      blue: '#3a6a9c', purple: '#7a4a8c', teal: '#3a8c7c'
+    };
+    const palette = Object.values(colors);
+
+    const mushroomLabels = { red: 'Красный', panther: 'Пантерный', royal: 'Королевский', other: 'Другой' };
+    const genderLabels = { female: 'Женщина', male: 'Мужчина', other: 'Другое' };
+    const expLabels = { positive: 'Позитивный', negative: 'Негативный', mixed: 'Смешанный', neutral: 'Нейтральный' };
+
+    const chartsHTML = `
+      <div class="chart-card"><div class="chart-title">Тип опыта</div><canvas id="c-exp"></canvas></div>
+      <div class="chart-card"><div class="chart-title">По полу</div><canvas id="c-gender"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Вид мухомора</div><canvas id="c-mushroom"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Средняя оценка по виду</div><canvas id="c-rating"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Диапазоны дозировок</div><canvas id="c-dosage"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Распределение оценок</div><canvas id="c-ratings-dist"></canvas></div>
+    `;
+    document.getElementById('chartsGrid').innerHTML = chartsHTML;
+
+    const chartDefaults = {
+      plugins: { legend: { labels: { color: '#b8ad99', font: { family: 'Golos Text' } } } },
+      scales: {}
+    };
+
+    const darkScale = {
+      ticks: { color: '#7a7468' },
+      grid: { color: '#2a2a26' }
+    };
+
+    // Exp type pie
+    new Chart(document.getElementById('c-exp'), {
+      type: 'doughnut',
+      data: {
+        labels: data.byExperience.map(e => expLabels[e.experience_type] || e.experience_type),
+        datasets: [{ data: data.byExperience.map(e => e.count), backgroundColor: palette, borderWidth: 0 }]
+      },
+      options: { ...chartDefaults, cutout: '65%' }
+    });
+
+    // Gender bar
+    new Chart(document.getElementById('c-gender'), {
+      type: 'bar',
+      data: {
+        labels: data.byGender.map(g => genderLabels[g.gender] || g.gender),
+        datasets: [{
+          label: 'Отзывов',
+          data: data.byGender.map(g => g.count),
+          backgroundColor: ['#c8392b', '#3a6a9c', '#7a4a8c'],
+          borderRadius: 4, borderWidth: 0
+        }]
+      },
+      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } }
+    });
+
+    // Mushroom type
+    new Chart(document.getElementById('c-mushroom'), {
+      type: 'doughnut',
+      data: {
+        labels: data.byMushroom.map(m => mushroomLabels[m.mushroom_type] || m.mushroom_type),
+        datasets: [{ data: data.byMushroom.map(m => m.count), backgroundColor: palette, borderWidth: 0 }]
+      },
+      options: { ...chartDefaults, cutout: '65%' }
+    });
+
+    // Avg rating by mushroom
+    new Chart(document.getElementById('c-rating'), {
+      type: 'bar',
+      data: {
+        labels: data.byMushroom.map(m => mushroomLabels[m.mushroom_type] || m.mushroom_type),
+        datasets: [{
+          label: 'Средняя оценка',
+          data: data.byMushroom.map(m => m.avg_rating?.toFixed(1) || 0),
+          backgroundColor: '#c9a84c', borderRadius: 4, borderWidth: 0
+        }]
+      },
+      options: { ...chartDefaults, scales: { x: darkScale, y: { ...darkScale, max: 10 } } }
+    });
+
+    // Dosage
+    new Chart(document.getElementById('c-dosage'), {
+      type: 'bar',
+      data: {
+        labels: data.byDosage.map(d => d.dosage_range),
+        datasets: [{
+          label: 'Отзывов',
+          data: data.byDosage.map(d => d.count),
+          backgroundColor: '#4a8c5c', borderRadius: 4, borderWidth: 0
+        }]
+      },
+      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+    });
+
+    // Rating distribution
+    new Chart(document.getElementById('c-ratings-dist'), {
+      type: 'bar',
+      data: {
+        labels: data.ratingDist.map(r => r.overall_rating),
+        datasets: [{
+          label: 'Отзывов',
+          data: data.ratingDist.map(r => r.count),
+          backgroundColor: data.ratingDist.map(r =>
+            r.overall_rating <= 3 ? '#c8392b' : r.overall_rating <= 6 ? '#c9a84c' : '#4a8c5c'
+          ),
+          borderRadius: 4, borderWidth: 0
+        }]
+      },
+      options: { ...chartDefaults, scales: { x: darkScale, y: darkScale } }
+    });
+
+    chartsInitialized = true;
+  } catch (e) {
+    document.getElementById('statsLoading').textContent = 'Ошибка загрузки данных';
+  }
+}
+
+// ── LOAD REVIEWS ──
+async function loadReviews() {
+  const container = document.getElementById('reviewsList');
+  if (container.children.length > 1) return;
+
+  try {
+    const r = await fetch('/api/stats');
+    const data = await r.json();
+    document.getElementById('reviewsLoading').style.display = 'none';
+
+    const mushroomNames = { red: '🔴 Красный', panther: '🟤 Пантерный', royal: '👑 Королевский', other: 'Другой' };
+    const genderNames = { female: '♀ Женщина', male: '♂ Мужчина', other: '⚧ Другое' };
+
+    if (!data.recent.length) {
+      container.innerHTML = '<div class="loading">Пока нет отзывов. Будьте первым!</div>';
+      return;
+    }
+
+    container.innerHTML = data.recent.map(r => `
+      <div class="review-item">
+        <div class="review-meta">
+          <span class="tag tag-gender">${genderNames[r.gender] || r.gender}</span>
+          <span class="tag tag-mushroom">${mushroomNames[r.mushroom_type] || r.mushroom_type}</span>
+          <span class="tag tag-dose">💊 ${r.dosage_grams}г</span>
+          <span class="tag ${r.overall_rating >= 7 ? 'tag-rating-good' : r.overall_rating <= 4 ? 'tag-rating-bad' : 'tag-dose'}">
+            ★ ${r.overall_rating}/10
+          </span>
+        </div>
+        ${r.review_text ? `<div class="review-text">${r.review_text}</div>` : '<div class="review-text" style="opacity:0.4;font-style:italic">Текстовый отзыв не оставлен</div>'}
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('reviewsLoading').textContent = 'Ошибка загрузки';
+  }
+}
+</script>
+</body>
+</html>
